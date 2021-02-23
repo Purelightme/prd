@@ -9,10 +9,10 @@
     <link href="https://cdn.bootcdn.net/ajax/libs/iview/3.5.5-rc.1/styles/iview.min.css" rel="stylesheet">
     <!-- import iView -->
     <script src="https://cdn.bootcdn.net/ajax/libs/iview/3.5.5-rc.1/iview.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <style>
         #app {
-            /*margin: 20px auto;*/
-            /*width: 400px;*/
+            margin: 20px 40px;
         }
     </style>
 </head>
@@ -31,19 +31,35 @@
     <alert type="success" v-for="url in zips">
         浏览地址：${ url }
     </alert>
+
+
+
+    <strong>历史prd:</strong>
+    <br><br>
+    <list border>
+        <list-item v-for="dir in dirs">
+            <a :href="dir.url" target="_blank">${ dir.name }</a>
+        </list-item>
+    </list>
 </div>
 <script>
     new Vue({
         el: "#app",
         delimiters: ['${','}'],
         data: {
-            zips: []
+            zips: [],
+            dirs: [],
         },
         methods: {
             handleSuccess(response,file,fileList){
                 this.zips.push(response.url)
             }
-        }
+        },
+        created(){
+            axios.get("/dirs").then((res) => {
+                this.dirs = res.data.dirs
+            })
+        },
     })
 </script>
 </body>

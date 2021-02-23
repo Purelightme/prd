@@ -1,14 +1,20 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"github.com/gin-gonic/gin"
+	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"path"
 	"prd/tools"
 	"strings"
 )
+
+//go:embed views/*
+var f embed.FS
 
 func main()  {
 
@@ -22,10 +28,13 @@ func main()  {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Static("/prd","./www")
-	r.LoadHTMLFiles("./views/index.html")
-	r.GET("/index", func(c *gin.Context) {
+	tmpl := template.Must(template.New("").ParseFS(f,"views/*.html"))
+	r.SetHTMLTemplate(tmpl)
+	
+	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK,"index.html",nil)
 	})
+	
 	r.POST("/upload", func(c *gin.Context) {
 		f,err := c.FormFile("file")
 		if err != nil {
@@ -50,12 +59,40 @@ func main()  {
 
 		c.JSON(http.StatusOK,gin.H{
 			"msg": "upload success",
-			"url": path.Join("http://"+*host+":"+*port,"/prd/",strings.Split(f.Filename,".")[0],"/index.html"),
+			"url": strings.Join([]string{"http://"+*host+":"+*port,"/prd/",strings.Split(f.Filename,".")[0],"/index.html"},""),
 		})
 	})
+
+	r.GET("/dirs", func(c *gin.Context) {
+		dir,err := ioutil.ReadDir(*wwwDir)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{
+				"error": err.Error(),
+			})
+		}
+
+		type Item struct {
+			Name string `json:"name"`
+			Url string `json:"url"`
+		}
+
+		var dirs []Item
+		for _,f := range dir {
+			if f.IsDir() && len(f.Name()) > 0 && f.Name() != "__MACOSX" {
+				dirs = append(dirs, Item{
+					Name: f.Name(),
+					Url: strings.Join([]string{"http://"+*host+":"+*port,"/prd/",f.Name(),"/index.html"},""),
+				})
+			}
+		}
+
+		c.JSON(http.StatusOK,gin.H{
+			"dirs": dirs,
+		})
+	})
+
 	err := r.Run("0.0.0.0:" + *port)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
-
