@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"flag"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"html/template"
 	"io/ioutil"
@@ -28,10 +29,10 @@ func main()  {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Static("/prd","./www")
-	tmpl := template.Must(template.New("").ParseFS(f,"views/*.html"))
+	tmpl := template.Must(template.New("").ParseFS(f,"views/*"))
 	r.SetHTMLTemplate(tmpl)
-	
 	r.GET("/", func(c *gin.Context) {
+		fmt.Println(tmpl.DefinedTemplates())
 		c.HTML(http.StatusOK,"index.html",nil)
 	})
 	
