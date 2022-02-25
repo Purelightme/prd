@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path"
 	"prd/tools"
 	"strings"
@@ -42,6 +44,7 @@ func main()  {
 			c.JSON(http.StatusBadRequest,gin.H{
 				"error": err.Error(),
 			})
+			return
 		}
 
 		dst := path.Join(*uploadsDir,f.Filename)
@@ -50,17 +53,42 @@ func main()  {
 			c.JSON(http.StatusInternalServerError,gin.H{
 				"error": err.Error(),
 			})
+			return
 		}
-		_,err = tools.Unzip(dst,*wwwDir)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{
-				"error": err.Error(),
-			})
+
+		//检测文件类型
+		contentType := f.Header.Get("Content-Type")
+		fmt.Println("文件类型:",contentType)
+		url := ""
+		switch contentType {
+		case "application/zip":
+			_,err = tools.Unzip(dst,*wwwDir)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			url = strings.Join([]string{"http://"+*host+":"+*port,"/prd/",strings.Split(f.Filename,".")[0],"/index.html"},"")
+		default:
+			dst,err := os.OpenFile(*wwwDir + "/" + f.Filename,os.O_CREATE|os.O_RDWR,0777)
+			if err != nil {
+				fmt.Println("文件创建失败",err)
+				return
+			}
+			src,_ := f.Open()
+			n,err := io.Copy(dst,src)
+			if err != nil {
+				fmt.Println("复制失败",err)
+				return
+			}
+			fmt.Println("成功复制",n)
+			url = strings.Join([]string{"http://"+*host+":"+*port,"/prd/",f.Filename},"")
 		}
 
 		c.JSON(http.StatusOK,gin.H{
 			"msg": "upload success",
-			"url": strings.Join([]string{"http://"+*host+":"+*port,"/prd/",strings.Split(f.Filename,".")[0],"/index.html"},""),
+			"url": url,
 		})
 	})
 
@@ -83,6 +111,11 @@ func main()  {
 				dirs = append(dirs, Item{
 					Name: f.Name(),
 					Url: strings.Join([]string{"http://"+*host+":"+*port,"/prd/",f.Name(),"/index.html"},""),
+				})
+			}else if !f.IsDir() {
+				dirs = append(dirs, Item{
+					Name: f.Name(),
+					Url: strings.Join([]string{"http://"+*host+":"+*port,"/prd/",f.Name()},""),
 				})
 			}
 		}
