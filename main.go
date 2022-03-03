@@ -110,7 +110,7 @@ func main()  {
 			if f.IsDir() && len(f.Name()) > 0 && f.Name() != "__MACOSX" {
 				dirs = append(dirs, Item{
 					Name: f.Name(),
-					Url: strings.Join([]string{"http://"+*host+":"+*port,"/prd/",f.Name(),"/index.html"},""),
+					Url: strings.Join([]string{"http://"+*host+":"+*port,"/prd/",f.Name()},""),
 				})
 			}else if !f.IsDir() {
 				dirs = append(dirs, Item{
