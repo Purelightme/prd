@@ -69,7 +69,16 @@ func main()  {
 				})
 				return
 			}
-			url = strings.Join([]string{"http://"+*host+":"+*port,"/prd/",strings.Split(f.Filename,".")[0],"/index.html"},"")
+			url = strings.Join([]string{"http://"+*host+":"+*port,"/prd/",strings.Split(f.Filename,".")[0]},"")
+		case "application/x-gzip":
+			err = tools.UnGzip(dst,*wwwDir + "/" + strings.Split(f.Filename,".")[0])
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			url = strings.Join([]string{"http://"+*host+":"+*port,"/prd/",strings.Split(f.Filename,".")[0]},"")
 		default:
 			dst,err := os.OpenFile(*wwwDir + "/" + f.Filename,os.O_CREATE|os.O_RDWR,0777)
 			if err != nil {
